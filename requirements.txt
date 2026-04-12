@@ -1,0 +1,19 @@
+# Core packages
+streamlit==1.32.2
+
+# Google Gemini
+google-generativeai==0.4.1
+
+# Text-to-Speech (cross-platform options)
+pyttsx3==2.90
+gTTS==2.5.1
+
+# Hugging Face - Optional for NLP models
+transformers==4.39.3
+huggingface-hub==0.23.0
+
+# Language detection (optional features)
+fasttext==0.9.3
+
+# TTS dependency on Linux systems
+espeakng==1.50.1.post1 ; platform_system=="Linux"
