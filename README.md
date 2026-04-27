@@ -1,19 +1,9 @@
 # Polylingo
+# 🌍 Polylingo – Learn Polish with AI
 
-AI-powered language tutor — Express + MongoDB backend with an OpenAI integration.
+Polylingo is an AI-powered language learning assistant that helps users learn **Polish** in a fun and interactive way. It translates English sentences into Polish, pronounces the translated sentence with TTS, and even teaches you a new **Polish Word of the Day** — all in one place!
 
-This README documents how to run the backend, required environment variables, the current API surface (including new conversation read endpoints), testing, and CI.
-
----
-
-## Quick status
-
-- Backend: Node.js + Express (testable `app.js` / `index.js`).
-- Database: MongoDB via Mongoose. Models: `User`, `Session`, `Conversation`.
-- Auth: JWT access + refresh token sessions (refresh tokens hashed and stored in `Session` documents).
-- AI: OpenAI client used in `routes/ai.js`; each chat is persisted to `Conversation`.
-- Tests: Jest + Supertest — unit/integration tests exist under `backend/tests/` and pass locally.
-- CI: GitHub Actions workflow at `.github/workflows/nodejs-backend-tests.yml` runs backend tests on push/PR.
+![Polylingo Logo](https://your-image-url-here.com) <!-- Optional: Add a banner or logo image -->
 
 ---
 
