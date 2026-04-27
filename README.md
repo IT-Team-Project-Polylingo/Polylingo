@@ -2,39 +2,18 @@
 
 Polylingo is an AI-powered language learning assistant that helps users learn **Polish** in a fun and interactive way. It translates English sentences into Polish, pronounces the translated sentence with TTS, and even teaches you a new **Polish Word of the Day** — all in one place!
 
+![Polylingo Logo](https://your-image-url-here.com) <!-- Optional: Add a banner or logo image -->
+
 ---
 
-## Quick start (backend)
+## ✨ Features
 
-1. Install deps and run:
-
-```bash
-cd backend
-npm install
-npm start
-```
-
-For development with auto-reload:
-
-```bash
-npm run dev
-```
-
-Run tests:
-
-```cmd
-cd backend
-npm test
-```
-
-Note: On Windows PowerShell, running `npm` via scripts may be blocked by execution policy. If you see an error like "npm.ps1 cannot be loaded because running scripts is disabled", either run tests from `cmd.exe` or temporarily allow scripts for the current user:
-
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-# then run tests
-cd backend
-npm test
-```
+- 🔁 Real-time translation of English to Polish
+- 🗣️ Text-to-Speech (TTS) for Polish pronunciation
+- 📅 Daily Polish word with translation and usage
+- ⚡ Built with Google Gemini API
+- 🧠 AI-enhanced learning experience
+- 🖥️ Simple and sleek web UI using **Streamlit**
 
 ---
 
