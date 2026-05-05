@@ -1,9 +1,6 @@
-# Polylingo
 # 🌍 Polylingo – Learn Polish with AI
 
 Polylingo is an AI-powered language learning assistant that helps users learn **Polish** in a fun and interactive way. It translates English sentences into Polish, pronounces the translated sentence with TTS, and even teaches you a new **Polish Word of the Day** — all in one place!
-
-![Polylingo Logo](https://your-image-url-here.com) <!-- Optional: Add a banner or logo image -->
 
 ---
 
