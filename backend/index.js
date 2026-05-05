@@ -1,28 +1,28 @@
-const express = require('express');
-const cors = require('cors');
 const mongoose = require('mongoose');
 require('dotenv').config();
 
-const app = express();
+const app = require('./app');
 
-// Middleware
-app.use(cors());
-app.use(express.json());
+// Connect to MongoDB and ensure indexes for models
+const User = require('./models/User');
+const Session = require('./models/Session');
+const Conversation = require('./models/Conversation');
 
-// Routes
-// This tells the app: "Any request starting with /api/users should go to userRoutes"
-app.use('/api/users', require('./routes/userRoutes'));
-app.use('/api/auth', require('./routes/auth'));
-app.use('/api/ai', require('./routes/ai'));
-
-// Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
-    .then(() => console.log("✅ Successfully connected to MongoDB!"))
+    .then(async () => {
+        console.log("✅ Successfully connected to MongoDB!");
+        try {
+            await Promise.all([
+                User.syncIndexes(),
+                Session.syncIndexes(),
+                Conversation.syncIndexes(),
+            ]);
+            console.log('🔧 Model indexes synced');
+        } catch (syncErr) {
+            console.warn('⚠️ Failed to sync indexes:', syncErr.message || syncErr);
+        }
+    })
     .catch((err) => console.log("❌ MongoDB connection error:", err));
-
-app.get('/', (req, res) => {
-    res.json({ message: "Backend is running perfectly!" });
-});
 
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => {
