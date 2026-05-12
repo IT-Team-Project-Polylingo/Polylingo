@@ -43,7 +43,7 @@ export default function ConversationsPage() {
 
   const filteredConversations = conversations.filter(c => 
     c.language.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.lastMessage.toLowerCase().includes(searchTerm.toLowerCase())
+    c.lastMessage?.content?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   if (!isAuthenticated) return null;
@@ -123,7 +123,7 @@ export default function ConversationsPage() {
                     </div>
                     
                     <p className="text-zinc-300 line-clamp-2 leading-relaxed">
-                      {conv.lastMessage}
+                      {conv.lastMessage?.content || "No messages yet."}
                     </p>
                     
                     <div className="flex items-center gap-6 text-[10px] text-zinc-600 font-bold uppercase tracking-widest pt-2">
