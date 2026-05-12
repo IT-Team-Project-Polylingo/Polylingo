@@ -7,12 +7,13 @@ export default async function AuthPage({
   searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
   const resolvedSearchParams = await searchParams;
-  const view = resolvedSearchParams.view as 'login' | 'register' | undefined;
+  const viewParam = resolvedSearchParams.view;
+  const view = (viewParam === 'register' || viewParam === 'login') ? viewParam : 'login';
 
   return (
     <main>
       <Suspense fallback={<AuthLoading />}>
-        <AuthContainer initialView={view === 'register' ? 'register' : 'login'} />
+        <AuthContainer initialView={view} />
       </Suspense>
     </main>
   );
