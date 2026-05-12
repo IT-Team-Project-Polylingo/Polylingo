@@ -37,7 +37,7 @@ const LANGUAGES = [
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [language, setLanguage] = useState("English");
+  const [language, setLanguage] = useState(() => user?.targetLanguage || "English");
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -56,6 +56,11 @@ export default function ChatPage() {
       scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
     }
   }, [messages]);
+
+  // Clear messages when the language changes to prevent cross-language leakage
+  useEffect(() => {
+    setMessages([]);
+  }, [language]);
 
   const handleSend = async (e: React.FormEvent) => {
     e.preventDefault();
