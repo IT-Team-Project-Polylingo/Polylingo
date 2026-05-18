@@ -1,25 +1,88 @@
-# 🌍 Polylingo – Learn Polish with AI
+# Polylingo
 
-Polylingo is an AI-powered language learning assistant that helps users learn **Polish** in a fun and interactive way. It translates English sentences into Polish, pronounces the translated sentence with TTS, and even teaches you a new **Polish Word of the Day** — all in one place!
+Polylingo is an AI-powered language learning app for practicing Polish. The project uses a Next.js frontend and a Node.js/Express backend with MongoDB, JWT authentication, OpenAI-powered chat, and persisted conversation history.
 
----
-
-## ✨ Features
-
-- 🔁 Real-time translation of English to Polish
-- 🗣️ Text-to-Speech (TTS) for Polish pronunciation
-- 📅 Daily Polish word with translation and usage
-- ⚡ Built with Google Gemini API
-- 🧠 AI-enhanced learning experience
-- 🖥️ Simple and sleek web UI using **Streamlit**
+This README is the main project overview for the repository. It explains what the app does, how to run it locally, what environment variables are needed, what the backend API looks like, how data is stored, and what the frontend needs to know.
 
 ---
 
-## Required environment variables
+## Project status
 
-Create a `backend/.env` (do NOT commit it).
+- Frontend and backend are connected.
+- Authentication uses access tokens and refresh tokens.
+- Chat messages are saved to MongoDB conversation documents.
+- Conversation history can be fetched from the backend.
+- Tests exist for the backend.
+- GitHub Actions CI is set up for backend tests.
 
+---
+
+## Features
+
+- Register and log in users.
+- Issue JWT access tokens and refresh tokens.
+- Chat with an AI language tutor.
+- Save every user/assistant message pair to MongoDB.
+- Fetch conversation summaries and full conversation history.
+- Rate limit and protect backend routes.
+- Support CORS for the frontend origin.
+
+---
+
+## Tech stack
+
+Frontend:
+- Next.js
+- React
+- TypeScript
+- Tailwind CSS
+- Zustand
+- Framer Motion
+
+Backend:
+- Node.js
+- Express
+- MongoDB
+- Mongoose
+- JWT
+- bcryptjs
+- OpenAI SDK
+
+Testing and CI:
+- Jest
+- Supertest
+- GitHub Actions
+
+---
+
+## Repository structure
+
+- `backend/` - Express API, MongoDB models, auth, chat, tests
+- `frontend/` - Next.js frontend
+- `DATABASE_SCHEMA.md` - plain schema handoff for a teammate
+- `assets/` - project assets
+
+---
+
+## Local setup
+
+### Prerequisites
+
+- Node.js 18 or newer
+- npm
+- MongoDB Atlas or a local MongoDB instance
+- OpenAI API key
+
+### Backend setup
+
+```bash
+cd backend
+npm install
 ```
+
+Create `backend/.env` with the following values:
+
+```env
 MONGO_URI=your_mongo_uri
 OPENAI_API_KEY=your_openai_api_key
 PORT=5000
@@ -28,142 +91,212 @@ REFRESH_TOKEN_SECRET=your_refresh_token_secret
 FRONTEND_URL=http://localhost:3000
 ```
 
-How to generate secure secrets (recommended):
-
-- Node (cross-platform):
+Run the backend:
 
 ```bash
-node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+npm start
 ```
 
-- PowerShell:
+For development:
 
-```powershell
-[System.Convert]::ToHexString((New-Object Security.Cryptography.RNGCryptoServiceProvider).GetBytes(48)).ToLower()
+```bash
+npm run dev
 ```
 
-Paste each generated string into `JWT_SECRET` and `REFRESH_TOKEN_SECRET`.
+### Frontend setup
 
-`FRONTEND_URL` should be the origin where your frontend runs (example: `http://localhost:3000` for React dev).
+```bash
+cd frontend
+npm install
+```
+
+Create `frontend/.env.local`:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:5000
+```
+
+Run the frontend:
+
+```bash
+npm run dev
+```
+
+Open the app at `http://localhost:3000`.
 
 ---
 
-## API reference (backend)
+## Environment variables
 
-Base URL (local): `http://localhost:5000`
+The backend uses these values:
 
-- POST `/api/auth/register`
+- `MONGO_URI` - MongoDB connection string
+- `OPENAI_API_KEY` - OpenAI API key used by the backend chat route
+- `PORT` - backend port, usually `5000`
+- `JWT_SECRET` - secret used to sign access tokens
+- `REFRESH_TOKEN_SECRET` - secret used to sign refresh tokens
+- `FRONTEND_URL` - allowed frontend origin for CORS
+
+The frontend uses:
+
+- `NEXT_PUBLIC_API_URL` - backend base URL
+
+Notes:
+- `backend/.env` is for local development only and should not be committed.
+- In GitHub Actions and deployment, use repository secrets or platform environment variables.
+
+---
+
+## Backend API
+
+Base URL for local development:
+
+```text
+http://localhost:5000
+```
+
+### Auth routes
+
+- `POST /api/auth/register`
   - Body: `{ "username", "email", "password" }`
-  - Response: `{ message, token, refreshToken, user }` (201)
+  - Returns access token, refresh token, and user data.
 
-- POST `/api/auth/login`
+- `POST /api/auth/login`
   - Body: `{ "email", "password" }`
-  - Response: `{ message, token, refreshToken, user }` (200)
+  - Returns access token, refresh token, and user data.
 
-- POST `/api/auth/refresh`
-  - Body: `{ "refreshToken" }` — rotates refresh token and returns new tokens.
+- `POST /api/auth/refresh`
+  - Body: `{ "refreshToken" }`
+  - Returns a new access token and rotated refresh token.
 
-- POST `/api/auth/logout`
-  - Body: `{ "refreshToken" }` — revokes the stored session.
+- `POST /api/auth/logout`
+  - Body: `{ "refreshToken" }`
+  - Revokes the session.
 
-- GET `/api/auth/me`
-  - Protected — returns current user (requires `Authorization: Bearer <accessToken>`).
+- `GET /api/auth/me`
+  - Protected route.
+  - Returns the current authenticated user.
 
-- GET `/api/users`
-  - Returns sanitized user list (for testing/admin).
+### Data routes
 
-- POST `/api/ai/chat`
-  - Protected. Body: `{ "message", "language" }`.
-  - Response: `{ reply }`.
-  - Stores user and assistant messages in `Conversation` for that user+language.
+- `GET /api/users`
+  - Returns sanitized user data.
 
-- GET `/api/conversations`
-  - Protected. Query params: `language` (optional), `page` (default 1), `limit` (default 20).
-  - Response: `{ conversations: [ { id, language, lastMessage, messageCount, updatedAt } ] }`.
+- `POST /api/ai/chat`
+  - Protected route.
+  - Body: `{ "message", "language" }`
+  - Returns `{ reply }`.
+  - Saves the user message and assistant reply to MongoDB.
 
-- GET `/api/conversations/:id`
-  - Protected. Query params: `page` (page of messages, default 1), `limit` (messages per page, default 100).
-  - Response: `{ conversation: { id, language, messages: [...], total } }` — messages are returned most-recent-first pagination.
+- `GET /api/conversations`
+  - Protected route.
+  - Query params: `language`, `page`, `limit`
+  - Returns conversation summaries.
 
-Authentication: All protected routes require the header `Authorization: Bearer <accessToken>`.
+- `GET /api/conversations/:id`
+  - Protected route.
+  - Query params: `page`, `limit`
+  - Returns the selected conversation with paginated messages.
 
----
+Protected routes require:
 
-## Database notes
-
-- Collections used: `users`, `sessions`, `conversations` (created automatically when first written).
-- Indexes declared in models:
-  - `Session` has a TTL index on `expiresAt` (so expired sessions are removed automatically).
-  - `Conversation` has a compound index `{ user: 1, language: 1, updatedAt: -1 }` for fast lookups.
-- On startup the backend attempts to sync model indexes automatically. See `backend/index.js` (it calls `Model.syncIndexes()` after connecting).
-
-If your Mongo user cannot create indexes, create them manually (mongosh):
-
-```js
-use <your_db>
-db.sessions.createIndex({ expiresAt: 1 }, { expireAfterSeconds: 0 })
-db.conversations.createIndex({ user: 1, language: 1, updatedAt: -1 })
+```http
+Authorization: Bearer <accessToken>
 ```
 
 ---
 
-## Testing & CI
+## Database behavior
 
-- Run locally:
+The backend writes to these MongoDB collections:
 
-```cmd
+- `users`
+- `sessions`
+- `conversations`
+
+### Users
+
+Stores registered user accounts with username, email, hashed password, and target language.
+
+### Sessions
+
+Stores hashed refresh tokens and session metadata. A TTL index removes expired sessions automatically.
+
+### Conversations
+
+Stores each chat session per user and language. Every chat request appends both the user message and the assistant reply to the `messages` array.
+
+If you need the full field-by-field schema, see `DATABASE_SCHEMA.md`.
+
+---
+
+## Security notes
+
+- Refresh tokens are stored in the current project flow so the app is easy to use in development.
+- For production, the better approach is to move refresh tokens into an `HttpOnly` cookie so JavaScript cannot read them.
+- Keep `JWT_SECRET`, `REFRESH_TOKEN_SECRET`, and `OPENAI_API_KEY` out of source control.
+- Use GitHub Secrets for CI and platform environment variables for deployment.
+- Limit `FRONTEND_URL` to the exact frontend origin you trust.
+
+---
+
+## Testing
+
+Run backend tests:
+
+```bash
 cd backend
 npm test
 ```
 
-- CI: A workflow `nodejs-backend-tests.yml` runs `npm test` in `backend` on push/PR to `main`. The workflow file is at `.github/workflows/nodejs-backend-tests.yml`.
-
-When running tests locally make sure `JWT_SECRET` and `REFRESH_TOKEN_SECRET` are set (tests also provide fallbacks in `jest.setup.js` when missing).
-
-### CI / GitHub Secrets
-
-The CI workflow reads sensitive values from your repository Secrets. Add the following secrets in the GitHub repository settings → Secrets & variables → Actions:
-
-- `MONGO_URI` — (optional for tests) your MongoDB connection string for integration tests. Not required for unit tests.
-- `OPENAI_API_KEY` — the OpenAI API key if any integration tests require it. Tests have a safe fallback, but set it for parity with production.
-- `JWT_SECRET` — the access-token signing secret used by the backend.
-- `REFRESH_TOKEN_SECRET` — the refresh-token signing secret used by the backend.
-
-How to add secrets:
-
-1. Open your repository on GitHub.
-2. Go to `Settings` → `Secrets and variables` → `Actions` → `New repository secret`.
-3. Use the names above and paste the secret values (generated as recommended earlier).
-
-Notes:
-
-- The workflow will use the secrets if present. If you do not set them, the test suite has local fallbacks for some values (see `backend/jest.setup.js`), but it's best practice to configure the real values for CI.
-- For production CI runs that exercise real DB or external APIs, store production secrets in the repository or organization secrets and protect them (branch protections, limited access).
-- Do NOT commit secrets into the repo; use GitHub Secrets only.
+The test suite uses Jest and Supertest. Some tests use local fallbacks for secrets in `backend/jest.setup.js`, but you should still set real values in development and CI.
 
 ---
 
-## Frontend integration checklist
+## CI
 
-- Store access token (short-lived) in memory or secure storage and attach `Authorization: Bearer <token>` when calling protected routes.
-- Use refresh token flow to obtain new access tokens via `POST /api/auth/refresh` when access tokens expire.
-- Chat flow:
-  - POST `/api/ai/chat` with `{ message, language }` — append user's message to UI, show loading, then append AI reply.
-  - Fetch conversation summaries via `GET /api/conversations` to show conversation list.
-  - Fetch messages for a conversation via `GET /api/conversations/:id?page=1&limit=100`.
+There is a GitHub Actions workflow that runs backend tests on push and pull requests.
 
-Example fetch call (JS/fetch):
+Workflow file:
 
-```js
-fetch('/api/conversations', { headers: { Authorization: `Bearer ${token}` }})
-  .then(r => r.json())
-  .then(data => console.log(data.conversations))
-```
+- `.github/workflows/nodejs-backend-tests.yml`
+
+The workflow expects repository secrets for:
+
+- `MONGO_URI`
+- `OPENAI_API_KEY`
+- `JWT_SECRET`
+- `REFRESH_TOKEN_SECRET`
 
 ---
 
-## Security & deployment notes
+## Frontend integration notes
 
-- Do not commit `backend/.env`. Use platform environment variables (Render, Heroku, Vercel, AWS, Azure) in production.
-- Rotate `REFRESH_TOKEN_SECRET` or `JWT_SECRET` if they become compromised.
-- Limit `FRONTEND_URL` in CORS to your frontend origin.
+The frontend should know:
+
+- Login and register return an access token and refresh token.
+- The access token must be sent in the `Authorization` header for protected routes.
+- When the access token expires, call `/api/auth/refresh`.
+- On logout, call `/api/auth/logout`.
+- Chat responses come from `/api/ai/chat`.
+- Conversation history comes from `/api/conversations` and `/api/conversations/:id`.
+
+Example request flow:
+
+1. User logs in.
+2. Frontend stores the access token.
+3. Frontend calls protected routes with `Authorization: Bearer <token>`.
+4. Frontend refreshes the token when needed.
+5. Frontend reads conversation history from the backend.
+
+---
+
+## Handoff summary
+
+If you are sharing this repo with someone else, the key points are:
+
+- Backend and frontend are already connected.
+- Messages are saved automatically to MongoDB.
+- The schema is documented in `DATABASE_SCHEMA.md`.
+- The frontend only needs the documented endpoints and token flow.
+- Local development still uses `backend/.env`.
