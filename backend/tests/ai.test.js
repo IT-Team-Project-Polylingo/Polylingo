@@ -63,8 +63,8 @@ describe('AI route', () => {
                 $push: {
                     messages: {
                         $each: [
-                            { role: 'user', content: 'Hello' },
-                            { role: 'assistant', content: 'Cześć! Jak się masz?' },
+                            { role: 'user', content: 'Hello', createdAt: expect.any(Date) },
+                            { role: 'assistant', content: 'Cześć! Jak się masz?', createdAt: expect.any(Date) },
                         ],
                     },
                 },
