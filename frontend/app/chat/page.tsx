@@ -35,15 +35,15 @@ const LANGUAGES = [
 ];
 
 export default function ChatPage() {
+  const { user, logout, isAuthenticated } = useAuthStore();
+  const router = useRouter();
+
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState(() => user?.targetLanguage || "English");
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
-
-  const { user, logout, isAuthenticated } = useAuthStore();
-  const router = useRouter();
 
   useEffect(() => {
     if (!isAuthenticated) {
