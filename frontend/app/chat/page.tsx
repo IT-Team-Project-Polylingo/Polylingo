@@ -62,7 +62,7 @@ export default function ChatPage() {
     setMessages([]);
   }, [language]);
 
-  const handleSend = async (e: React.FormEvent) => {
+  const handleSend = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
@@ -123,9 +123,9 @@ export default function ChatPage() {
                   <span>History</span>
                 </button>
                 <div className="pt-4 pb-2">
-                  <label className="px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
+                  <span className="px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
                     Target Language
-                  </label>
+                  </span>
                 </div>
                 <div className="grid grid-cols-1 gap-1 px-2">
                   {LANGUAGES.map((lang) => (
@@ -182,6 +182,8 @@ export default function ChatPage() {
           <div className="flex items-center gap-4">
             <button
               onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                aria-label="Toggle sidebar"
+                title="Toggle sidebar"
               className="p-2 hover:bg-white/5 rounded-lg transition-colors lg:hidden"
             >
               <History className="w-5 h-5" />
@@ -308,6 +310,8 @@ export default function ChatPage() {
             <button
               type="submit"
               disabled={!input.trim() || isLoading}
+              aria-label="Send message"
+              title="Send message"
               className="absolute right-3 top-1/2 -translate-y-1/2 p-2.5 bg-primary text-white rounded-xl shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:grayscale disabled:scale-100"
             >
               <Send className="w-5 h-5" />

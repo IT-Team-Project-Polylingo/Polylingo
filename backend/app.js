@@ -5,6 +5,7 @@ const cors = require('cors');
 const rateLimit = require('express-rate-limit');
 
 const app = express();
+app.disable('x-powered-by');
 
 app.use(cors({ origin: process.env.FRONTEND_URL || '*' }));
 app.use(express.json());

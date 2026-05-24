@@ -22,12 +22,6 @@ router.post('/chat', auth, async (req, res) => {
             return res.status(400).json({ message: 'Missing or invalid `language`' });
         }
 
-        // Determine whether we should actively correct grammar in this turn.
-        const explicitCorrectionRequested = /\b(correct|correct me|please correct|düzelt|corrige|corrigir)\b/i.test(message);
-        const shouldCorrect = CORRECTION_MODE === 'always' ||
-            (CORRECTION_MODE === 'explicit' && explicitCorrectionRequested) ||
-            CORRECTION_MODE === 'concise';
-
         // Build a safe, minimal system prompt that can be tuned via env vars.
         let correctionInstruction;
         if (CORRECTION_MODE === 'always') {

@@ -1,8 +1,16 @@
 import axios from 'axios';
 import { useAuthStore } from '@/store/authStore';
 
+const rawBaseUrl = process.env.NEXT_PUBLIC_API_URL?.trim();
+
+if (!rawBaseUrl && process.env.NODE_ENV === 'production') {
+  throw new Error('NEXT_PUBLIC_API_URL is missing. Set it to your deployed backend URL before building the frontend.');
+}
+
+const baseURL = (rawBaseUrl || 'http://localhost:5000').replace(/\/$/, '');
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5000',
+  baseURL,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -17,14 +25,21 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => Promise.reject(error)
+  (error) => {
+    throw error;
+  }
 );
 
 // Response interceptor
 let isRefreshing = false;
-let failedQueue: any[] = [];
+type QueueEntry = {
+  resolve: (token: string | null) => void;
+  reject: (error: unknown) => void;
+};
 
-const processQueue = (error: any, token: string | null = null) => {
+let failedQueue: QueueEntry[] = [];
+
+const processQueue = (error: unknown, token: string | null = null) => {
   failedQueue.forEach((prom) => {
     if (error) {
       prom.reject(error);
@@ -49,7 +64,9 @@ api.interceptors.response.use(
             originalRequest.headers.Authorization = `Bearer ${token}`;
             return api(originalRequest);
           })
-          .catch((err) => Promise.reject(err));
+          .catch((err) => {
+            throw err;
+          });
       }
 
       originalRequest._retry = true;
@@ -60,7 +77,7 @@ api.interceptors.response.use(
       if (!refreshToken) {
         useAuthStore.getState().logout();
         isRefreshing = false;
-        return Promise.reject(error);
+        throw error;
       }
 
       try {
@@ -78,13 +95,13 @@ api.interceptors.response.use(
       } catch (refreshError) {
         processQueue(refreshError, null);
         useAuthStore.getState().logout();
-        return Promise.reject(refreshError);
+        throw refreshError;
       } finally {
         isRefreshing = false;
       }
     }
 
-    return Promise.reject(error);
+    throw error;
   }
 );
 
