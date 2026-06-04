@@ -1,13 +1,12 @@
 "use client";
 
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Sparkles,
   ArrowRight,
   Languages,
   Zap,
-  Shield,
   Globe,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -16,12 +15,36 @@ import { useAuthStore } from "@/store/authStore";
 export default function Home() {
   const { isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const [hasHydrated, setHasHydrated] = useState(() => useAuthStore.persist?.hasHydrated?.() ?? false);
 
   useEffect(() => {
-    if (isAuthenticated) {
+    const unsubscribe = useAuthStore.persist?.onFinishHydration?.(() => {
+      setHasHydrated(true);
+    });
+
+    if (useAuthStore.persist?.hasHydrated?.()) {
+      setHasHydrated(true);
+    }
+
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    if (hasHydrated && isAuthenticated) {
       router.push("/chat");
     }
-  }, [isAuthenticated, router]);
+  }, [hasHydrated, isAuthenticated, router]);
+
+  if (!hasHydrated) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-[#050505] text-zinc-100">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-zinc-500">Loading app...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (isAuthenticated) return null;
 
@@ -41,7 +64,7 @@ export default function Home() {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/5 border border-white/10 text-sm font-medium text-primary backdrop-blur-sm"
           >
             <Sparkles className="w-4 h-4" />
-            <span>Next-Gen AI Language Learning</span>
+            <span>AI Language Tutor</span>
           </motion.div>
 
           <motion.h1
@@ -50,7 +73,7 @@ export default function Home() {
             transition={{ delay: 0.1 }}
             className="text-6xl md:text-8xl font-black tracking-tighter leading-[1.1]"
           >
-            Master any language <br />
+            Learn any language <br />
             <span className="text-transparent bg-clip-text bg-linear-to-r from-primary via-purple-500 to-blue-500">
               with PolyLingo AI
             </span>
@@ -62,9 +85,9 @@ export default function Home() {
             transition={{ delay: 0.2 }}
             className="max-w-2xl mx-auto text-xl text-zinc-400 leading-relaxed"
           >
-            Practice speaking, writing, and understanding any language with your
-            personal AI tutor. Natural conversations, instant feedback, and
-            personalized progress.
+            Practice speaking, writing and understanding any
+            language with your personal AI tutor. Natural conversations,
+            instant feedback and personalized progress.
           </motion.p>
 
           <motion.div
@@ -97,25 +120,25 @@ export default function Home() {
           {[
             {
               icon: Languages,
-              title: "10+ Languages",
+              title: "Language Practice",
               description:
-                "Learn and practice English, Spanish, French, Japanese, and many more with native-level AI.",
+                "Learn English or switch to Polish, Spanish, French, Japanese and more with native level tutoring.",
             },
             {
               icon: Zap,
-              title: "Instant Feedback",
+              title: "Instant Corrections",
               description:
-                "Get real-time corrections and suggestions to improve your grammar and vocabulary.",
+                "Get real time corrections and suggestions to improve your grammar, vocabulary and sentence structure.",
             },
             {
               icon: Globe,
-              title: "Cultural Context",
+              title: "Tutor Guidance",
               description:
-                "Understand nuances and cultural background as you learn through natural conversation.",
+                "Understand nuances, examples and learning hints as you practice through natural conversation.",
             },
           ].map((feature, idx) => (
             <motion.div
-              key={idx}
+              key={feature.title}
               initial={{ opacity: 0, y: 20 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -138,12 +161,12 @@ export default function Home() {
       <section className="py-24 border-t border-white/5 bg-zinc-900/20">
         <div className="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-12 text-center">
           {[
-            { label: "Active Users", value: "50k+" },
-            { label: "Messages Sent", value: "2M+" },
-            { label: "Languages", value: "10+" },
-            { label: "User Rating", value: "4.9/5" },
-          ].map((stat, idx) => (
-            <div key={idx} className="space-y-2">
+            { label: "Mode", value: "Tutor first" },
+            { label: "Feedback", value: "Real time" },
+            { label: "Scope", value: "Any language" },
+            { label: "Focus", value: "Learning only" },
+          ].map((stat) => (
+            <div key={stat.label} className="space-y-2">
               <div className="text-4xl font-black text-white tracking-tighter">
                 {stat.value}
               </div>
@@ -164,8 +187,12 @@ export default function Home() {
           <span className="font-bold text-xl tracking-tight">PolyLingo</span>
         </div>
         <p className="text-zinc-600 text-sm">
-          &copy; 2026 PolyLingo AI. Built for the future of education.
+          &copy; 2026 PolyLingo AI. Built as a language tutor.
         </p>
+        <div className="mt-3 space-x-4">
+          <a href="/terms" className="text-zinc-400 hover:text-white underline">Terms</a>
+          <a href="/privacy" className="text-zinc-400 hover:text-white underline">Privacy</a>
+        </div>
       </footer>
     </div>
   );

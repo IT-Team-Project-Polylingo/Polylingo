@@ -5,6 +5,8 @@ interface User {
   id: string;
   username: string;
   email: string;
+  targetLanguage?: string;
+  nativeLanguage?: string;
 }
 
 interface AuthState {
@@ -33,6 +35,12 @@ export const useAuthStore = create<AuthState>()(
     }),
     {
       name: 'polylingo-auth',
+      partialize: (state) => ({
+        user: state.user,
+        token: state.token,
+        refreshToken: state.refreshToken,
+        isAuthenticated: state.isAuthenticated,
+      }),
     }
   )
 );

@@ -4,12 +4,13 @@ import React, { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
-  Languages,
   History,
   User,
   LogOut,
   Loader2,
   Sparkles,
+  BookOpen,
+  Languages,
 } from "lucide-react";
 import { chatService, Message } from "@/services/chatService";
 import { useAuthStore } from "@/store/authStore";
@@ -21,7 +22,7 @@ function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-const LANGUAGES = [
+const languageOptions = [
   "English",
   "Spanish",
   "French",
@@ -32,24 +33,49 @@ const LANGUAGES = [
   "Chinese",
   "Russian",
   "Portuguese",
+  "Turkish",
 ];
 
 export default function ChatPage() {
   const { user, logout, isAuthenticated } = useAuthStore();
   const router = useRouter();
+  const [hasHydrated, setHasHydrated] = useState(() => useAuthStore.persist?.hasHydrated?.() ?? false);
 
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [language, setLanguage] = useState(() => user?.targetLanguage || "English");
+  const [language, setLanguage] = useState(() => user?.targetLanguage || "Polish");
+  const [nativeLanguage, setNativeLanguage] = useState(() => user?.nativeLanguage || "English");
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [convId, setConvId] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isAuthenticated) {
-      router.push("/auth");
+    const unsubscribe = useAuthStore.persist?.onFinishHydration?.(() => {
+      setHasHydrated(true);
+    });
+
+    if (useAuthStore.persist?.hasHydrated?.()) {
+      setHasHydrated(true);
     }
-  }, [isAuthenticated, router]);
+
+    return unsubscribe;
+  }, []);
+
+  const startNewConversation = () => {
+    setConvId(null);
+    setMessages([]);
+    setInput("");
+    setLanguage(user?.targetLanguage || "Polish");
+    setNativeLanguage(user?.nativeLanguage || "English");
+    router.replace("/chat");
+  };
+
+  useEffect(() => {
+    if (hasHydrated && !isAuthenticated) {
+      router.replace("/auth");
+    }
+  }, [hasHydrated, isAuthenticated, router]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -59,8 +85,48 @@ export default function ChatPage() {
 
   // Clear messages when the language changes to prevent cross-language leakage
   useEffect(() => {
-    setMessages([]);
-  }, [language]);
+    // Only clear messages when not viewing a saved conversation.
+    if (!convId) setMessages([]);
+  }, [language, convId]);
+
+  // Load conversation messages when an `id` query param is present
+  useEffect(() => {
+    // read convId from the URL on mount if not already set
+    if (!convId) {
+      try {
+        const params = new URLSearchParams(globalThis.location?.search || "");
+        const id = params.get('id');
+        if (id) setConvId(id);
+      } catch (error) {
+        console.error('Failed to read conversation id from URL:', error);
+      }
+    }
+    if (!convId) return;
+    let cancelled = false;
+    const fetchConversation = async () => {
+      try {
+        const data = await chatService.getConversation(convId, { page: 1, limit: 500 });
+        const conv = data.conversation;
+        if (!conv || cancelled) return;
+
+        // Map backend messages to frontend Message shape
+        const mapped = (conv.messages || []).map((m: any, i: number) => ({
+          id: `${new Date(m.createdAt).getTime()}-${i}`,
+          role: m.role,
+          content: m.content,
+          createdAt: m.createdAt,
+        }));
+
+        setLanguage(conv.language || language);
+        setMessages(mapped);
+      } catch (err) {
+        console.error('Failed to load conversation:', err);
+      }
+    };
+
+    fetchConversation();
+    return () => { cancelled = true; };
+  }, [convId]);
 
   const handleSend = async (e: React.SyntheticEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -78,7 +144,7 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(input, language);
+      const response = await chatService.sendMessage(input, language, convId, nativeLanguage);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -86,12 +152,28 @@ export default function ChatPage() {
         createdAt: new Date().toISOString(),
       };
       setMessages((prev) => [...prev, assistantMessage]);
+
+      if (response.conversationId && response.conversationId !== convId) {
+        setConvId(response.conversationId);
+        router.replace(`/chat?id=${response.conversationId}`);
+      }
     } catch (error) {
       console.error("Failed to send message:", error);
     } finally {
       setIsLoading(false);
     }
   };
+
+  if (!hasHydrated) {
+    return (
+      <div className="flex h-screen items-center justify-center bg-[#050505] text-zinc-100">
+        <div className="text-center space-y-3">
+          <div className="w-12 h-12 mx-auto border-4 border-primary border-t-transparent rounded-full animate-spin" />
+          <p className="text-sm text-zinc-500">Loading chat...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!isAuthenticated) return null;
 
@@ -116,6 +198,13 @@ export default function ChatPage() {
 
               <div className="space-y-1">
                 <button
+                  onClick={startNewConversation}
+                  className="w-full flex items-center gap-3 px-4 py-3 rounded-xl bg-primary/10 border border-primary/20 text-primary hover:bg-primary/15 transition-colors"
+                >
+                  <Send className="w-5 h-5" />
+                  <span>New Conversation</span>
+                </button>
+                <button
                   onClick={() => router.push("/conversations")}
                   className="w-full flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-white/5 transition-colors text-zinc-400 hover:text-white"
                 >
@@ -124,26 +213,39 @@ export default function ChatPage() {
                 </button>
                 <div className="pt-4 pb-2">
                   <span className="px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Target Language
+                    Language settings
                   </span>
                 </div>
-                <div className="grid grid-cols-1 gap-1 px-2">
-                  {LANGUAGES.map((lang) => (
-                    <button
-                      key={lang}
-                      onClick={() => setLanguage(lang)}
-                      className={cn(
-                        "w-full flex items-center gap-3 px-3 py-2 rounded-lg transition-all text-sm",
-                        language === lang
-                          ? "bg-primary/10 text-primary font-medium border border-primary/20"
-                          : "text-zinc-500 hover:bg-white/5 hover:text-zinc-300",
-                      )}
-                    >
-                      <Languages className="w-4 h-4" />
-                      {lang}
-                    </button>
+                <label htmlFor="learning-language" className="block px-4 pb-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  Learning language
+                </label>
+                <select
+                  id="learning-language"
+                  value={language}
+                  onChange={(e) => setLanguage(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-900/95 border border-white/10 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  {languageOptions.map((option) => (
+                    <option key={option} value={option} className="bg-zinc-900 text-zinc-100">
+                      {option}
+                    </option>
                   ))}
-                </div>
+                </select>
+                <label htmlFor="native-language" className="block px-4 pt-4 pb-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
+                  Your native language
+                </label>
+                <select
+                  id="native-language"
+                  value={nativeLanguage}
+                  onChange={(e) => setNativeLanguage(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl bg-zinc-900/95 border border-white/10 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-primary/40"
+                >
+                  {languageOptions.map((option) => (
+                    <option key={option} value={option} className="bg-zinc-900 text-zinc-100">
+                      {option}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -164,7 +266,7 @@ export default function ChatPage() {
               <button
                 onClick={() => {
                   logout();
-                  router.push("/auth");
+                  router.replace("/auth");
                 }}
                 className="w-full flex items-center gap-3 px-4 py-2.5 rounded-xl hover:bg-red-500/10 text-zinc-500 hover:text-red-400 transition-colors text-sm"
               >
@@ -190,13 +292,13 @@ export default function ChatPage() {
             </button>
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              <h2 className="font-semibold">{language} AI Assistant</h2>
+              <h2 className="font-semibold">{language} Language Tutor</h2>
             </div>
           </div>
           <div className="flex items-center gap-3">
             <div className="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-xs text-zinc-400">
               <Sparkles className="w-3 h-3 text-primary" />
-              GPT-4o Powered
+              OpenAI Powered
             </div>
           </div>
         </header>
@@ -212,30 +314,41 @@ export default function ChatPage() {
               </div>
               <div>
                 <h3 className="text-2xl font-bold mb-2">
-                  Start learning {language}
+                  Practice {language} with a tutor
                 </h3>
                 <p className="text-zinc-500 leading-relaxed">
-                  Every message you send helps you practice and improve. Our AI
-                  is tuned to help you master {language} through natural
-                  conversation.
+                  Ask for corrections, examples, translations, vocabulary,
+                  grammar help, or short practice tasks. This space is for
+                  language learning only.
                 </p>
               </div>
-              <div className="grid grid-cols-1 gap-2 w-full">
+              <div className="grid grid-cols-1 gap-2 w-full text-left">
                 <button
                   onClick={() =>
-                    setInput(`How do I say "Hello" in ${language}?`)
+                    setInput(`Please correct my sentence and explain the mistake: I am student.`)
                   }
-                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm text-left"
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm flex items-start gap-3"
                 >
-                  How do I say "Hello" in {language}?
+                  <BookOpen className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  Correct my sentence
                 </button>
                 <button
                   onClick={() =>
-                    setInput(`Tell me a fun fact about ${language} culture.`)
+                    setInput(`Give me 5 beginner phrases in ${language} with short ${nativeLanguage} meanings.`)
                   }
-                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm text-left"
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm flex items-start gap-3"
                 >
-                  Tell me a fun fact about {language} culture.
+                  <Languages className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  Give me beginner phrases
+                </button>
+                <button
+                  onClick={() =>
+                    setInput(`Ask me a short practice question in ${language}.`)
+                  }
+                  className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm flex items-start gap-3"
+                >
+                  <Sparkles className="w-4 h-4 mt-0.5 text-primary shrink-0" />
+                  Quiz me
                 </button>
               </div>
             </div>
@@ -318,7 +431,7 @@ export default function ChatPage() {
             </button>
           </form>
           <p className="text-center text-[10px] text-zinc-600 mt-4 uppercase tracking-[0.2em]">
-            PolyLingo can make mistakes. Check important info.
+            PolyLingo is a language tutor only. It can still make mistakes.
           </p>
         </div>
       </main>

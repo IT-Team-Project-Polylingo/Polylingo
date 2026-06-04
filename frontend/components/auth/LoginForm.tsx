@@ -4,19 +4,20 @@ import React, { useState } from 'react';
 import { useAuthStore } from '@/store/authStore';
 import api from '@/lib/api';
 import { useRouter } from 'next/navigation';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Eye, EyeOff } from 'lucide-react';
 
 import { motion } from 'framer-motion';
 
 export const LoginForm: React.FC = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const setAuth = useAuthStore((state) => state.setAuth);
   const router = useRouter();
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: any) => {
     e.preventDefault();
     setIsLoading(true);
     setError(null);
@@ -29,7 +30,7 @@ export const LoginForm: React.FC = () => {
 
       const { user, token, refreshToken } = response.data;
       setAuth(user, token, refreshToken);
-      router.push('/chat');
+      router.replace('/chat');
     } catch (err: any) {
       setError(err.response?.data?.message || 'Invalid email or password');
     } finally {
@@ -79,17 +80,27 @@ export const LoginForm: React.FC = () => {
             <label htmlFor="password" className="block text-sm font-medium text-foreground mb-1">
               Password
             </label>
-            <input
-              id="password"
-              name="password"
-              type="password"
-              autoComplete="current-password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="appearance-none relative block w-full px-4 py-3 border border-border placeholder-muted-foreground text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 bg-background/50 backdrop-blur-sm"
-              placeholder="••••••••"
-            />
+            <div className="relative">
+              <input
+                id="password"
+                name="password"
+                type={showPassword ? 'text' : 'password'}
+                autoComplete="current-password"
+                required
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="appearance-none relative block w-full px-4 pr-12 py-3 border border-border placeholder-muted-foreground text-foreground rounded-xl focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200 bg-background/50 backdrop-blur-sm"
+                placeholder="••••••••"
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((s) => !s)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 flex items-center px-1 text-zinc-300 hover:text-white bg-transparent focus:outline-none"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4 align-middle" /> : <Eye className="w-4 h-4 align-middle" />}
+              </button>
+            </div>
           </div>
         </div>
 
@@ -107,9 +118,9 @@ export const LoginForm: React.FC = () => {
           </div>
 
           <div className="font-medium">
-            <a href="#" className="text-primary hover:text-primary/80 transition-colors">
+            <button type="button" onClick={() => { globalThis.location.href = '/auth/forgot'; }} className="text-primary hover:text-primary/80 transition-colors">
               Forgot your password?
-            </a>
+            </button>
           </div>
         </div>
 
