@@ -13,6 +13,8 @@ import {
   Languages,
 } from "lucide-react";
 import { chatService, Message } from "@/services/chatService";
+import { marked } from 'marked';
+import DOMPurify from 'isomorphic-dompurify';
 import { useAuthStore } from "@/store/authStore";
 import { useRouter } from "next/navigation";
 import { clsx, type ClassValue } from "clsx";
@@ -44,7 +46,6 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [language, setLanguage] = useState(() => user?.targetLanguage || "Polish");
-  const [nativeLanguage, setNativeLanguage] = useState(() => user?.nativeLanguage || "English");
   const [isLoading, setIsLoading] = useState(false);
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -67,7 +68,6 @@ export default function ChatPage() {
     setMessages([]);
     setInput("");
     setLanguage(user?.targetLanguage || "Polish");
-    setNativeLanguage(user?.nativeLanguage || "English");
     router.replace("/chat");
   };
 
@@ -144,7 +144,7 @@ export default function ChatPage() {
     setIsLoading(true);
 
     try {
-      const response = await chatService.sendMessage(input, language, convId, nativeLanguage);
+      const response = await chatService.sendMessage(input, language, convId);
       const assistantMessage: Message = {
         id: (Date.now() + 1).toString(),
         role: "assistant",
@@ -211,11 +211,7 @@ export default function ChatPage() {
                   <History className="w-5 h-5" />
                   <span>History</span>
                 </button>
-                <div className="pt-4 pb-2">
-                  <span className="px-4 text-xs font-semibold text-zinc-500 uppercase tracking-wider">
-                    Language settings
-                  </span>
-                </div>
+                {/* Language settings heading removed per UI update */}
                 <label htmlFor="learning-language" className="block px-4 pb-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
                   Learning language
                 </label>
@@ -231,21 +227,7 @@ export default function ChatPage() {
                     </option>
                   ))}
                 </select>
-                <label htmlFor="native-language" className="block px-4 pt-4 pb-2 text-xs font-medium text-zinc-500 uppercase tracking-wider">
-                  Your native language
-                </label>
-                <select
-                  id="native-language"
-                  value={nativeLanguage}
-                  onChange={(e) => setNativeLanguage(e.target.value)}
-                  className="w-full px-4 py-3 rounded-xl bg-zinc-900/95 border border-white/10 text-sm text-zinc-100 outline-none focus:ring-2 focus:ring-primary/40"
-                >
-                  {languageOptions.map((option) => (
-                    <option key={option} value={option} className="bg-zinc-900 text-zinc-100">
-                      {option}
-                    </option>
-                  ))}
-                </select>
+                {/* Native language selector removed — backend auto-detects native language */}
               </div>
             </div>
 
@@ -334,7 +316,7 @@ export default function ChatPage() {
                 </button>
                 <button
                   onClick={() =>
-                    setInput(`Give me 5 beginner phrases in ${language} with short ${nativeLanguage} meanings.`)
+                    setInput(`Give me 5 beginner phrases in ${language} with short meanings in your native language.`)
                   }
                   className="px-4 py-3 rounded-xl bg-white/5 border border-white/10 hover:bg-white/10 transition-colors text-sm flex items-start gap-3"
                 >
@@ -386,7 +368,11 @@ export default function ChatPage() {
                     : "bg-white/5 text-zinc-200 border border-white/10 rounded-tl-none backdrop-blur-sm",
                 )}
               >
-                {msg.content}
+                {msg.role === 'assistant' ? (
+                  <div dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(marked.parse(msg.content)) }} />
+                ) : (
+                  msg.content
+                )}
               </div>
             </motion.div>
           ))}
